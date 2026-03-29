@@ -42,8 +42,7 @@ const property = {
   domainEstimateLow: 1_120_000,
   domainEstimateMid: 1_300_000,
   domainEstimateHigh: 1_480_000,
-  heroImage:
-    "https://rimh2.domainstatic.com.au/yB-DWM36xpmUvVPxxMBWvJiFww4=/fit-in/1920x1080/filters:format(jpeg):quality(80):no_upscale()/2020645694_1",
+  heroImage: "/hero.webp",
   features: [
     "Air Conditioning",
     "Built-in Robes",
