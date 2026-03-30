@@ -12,21 +12,38 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
+// Detail tab components
+import { CostsTab } from "@/components/detail/costs-tab";
+import { RentalTab } from "@/components/detail/rental-tab";
+import { CompsTab } from "@/components/detail/comps-tab";
+import { InvestmentTab } from "@/components/detail/investment-tab";
+import { NegotiationTab } from "@/components/detail/negotiation-tab";
+import { ProjectionTab } from "@/components/detail/projection-tab";
+import { CalculatorTab } from "@/components/detail/calculator-tab";
+
+// Scenario components
+import { ScenarioBar } from "@/components/scenario/scenario-bar";
+import { ScenarioEditor } from "@/components/scenario/scenario-editor";
+
+// Charts
+import { AcquisitionDonut } from "@/components/charts/acquisition-donut";
+import { RentalBar } from "@/components/charts/rental-bar";
+import { CashflowWaterfall } from "@/components/charts/cashflow-waterfall";
+import { CompsScatter } from "@/components/charts/comps-scatter";
+import { ProjectionLine } from "@/components/charts/projection-line";
+import { MarketPosition } from "@/components/charts/market-position";
+
+// Shared helpers
+import { fmt, scoreColor, ScoreGauge } from "@/components/detail/shared";
+
+// Hooks
+import { useScenario } from "@/hooks/use-scenario";
+
+// Calculations
+import { projectFiveYears, recalculate } from "@/lib/calculations";
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function fmt(n: number) {
-  return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(n);
-}
-function fmtFull(n: number) {
-  return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 2 }).format(n);
-}
-function scoreColor(s: number) {
-  if (s >= 80) return "text-emerald-400";
-  if (s >= 60) return "text-blue-400";
-  if (s >= 40) return "text-amber-400";
-  if (s >= 20) return "text-orange-400";
-  return "text-red-400";
-}
 function scoreBg(s: number) {
   if (s >= 80) return "bg-emerald-400/10 border-emerald-400/30";
   if (s >= 60) return "bg-blue-400/10 border-blue-400/30";
@@ -37,44 +54,6 @@ function recVariant(r: string): "default" | "secondary" | "destructive" | "outli
   if (r.includes("STRONG BUY") || r === "BUY") return "default";
   if (r === "HOLD") return "secondary";
   return "destructive";
-}
-
-// ─── Metric Block ────────────────────────────────────────────────────────────
-
-function M({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={`font-mono text-lg font-semibold ${accent ? "text-amber-400" : ""}`}>{value}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
-    </div>
-  );
-}
-
-function CostRow({ label, amount }: { label: string; amount: number }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="font-mono text-sm">{fmtFull(amount)}</span>
-    </div>
-  );
-}
-
-function ScoreGauge({ score, size = "lg" }: { score: number; size?: "sm" | "lg" }) {
-  const dim = size === "sm" ? "w-20 h-20" : "w-32 h-32";
-  const textSize = size === "sm" ? "text-xl" : "text-3xl";
-  return (
-    <div className={`relative ${dim}`}>
-      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-        <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" className="text-muted/30" strokeWidth="8" />
-        <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" className={scoreColor(score)} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(score / 100) * 327} 327`} />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-mono ${textSize} font-bold ${scoreColor(score)}`}>{score}</span>
-        {size === "lg" && <span className="text-[10px] text-muted-foreground uppercase tracking-wider">/ 100</span>}
-      </div>
-    </div>
-  );
 }
 
 // ─── Property Card (List View) ───────────────────────────────────────────────
@@ -196,9 +175,15 @@ function ComparisonView() {
 // ─── Detail View ─────────────────────────────────────────────────────────────
 
 function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
-  const priceSqm = Math.round(p.price / p.internalSqm);
+  const scenario = useScenario(p);
+  const { mode, effective, derived, adjustments } = scenario;
+  const priceSqm = Math.round(effective.price / effective.internalSqm);
+
+  // Data for charts
+  const projections = projectFiveYears(p, adjustments);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Button variant="ghost" onClick={onBack} className="text-muted-foreground">&larr; Back to all properties</Button>
 
       {/* Hero */}
@@ -214,7 +199,7 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
                 <p className="text-white/70 text-xs sm:text-sm">{p.suburb}</p>
               </div>
               <div className="sm:text-right flex sm:flex-col items-baseline sm:items-end gap-2 sm:gap-0 flex-shrink-0">
-                <p className="text-white font-mono text-lg sm:text-2xl font-bold">{p.priceDisplay}</p>
+                <p className="text-white font-mono text-lg sm:text-2xl font-bold">{effective.priceDisplay}</p>
                 <p className="text-white/60 text-[10px] sm:text-xs font-mono">{fmt(priceSqm)}/sqm</p>
                 {!p.priceVerified && (
                   <p className="text-amber-400 text-[10px] sm:text-xs mt-0.5 bg-amber-400/20 px-1.5 py-0.5 rounded">
@@ -231,24 +216,72 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
               <ScoreGauge score={p.score} />
               <Badge variant={recVariant(p.recommendation)} className="text-base px-4 py-1">{p.recommendation}</Badge>
               <p className="text-xs text-muted-foreground">Risk: {p.riskRating}</p>
+              {mode === "adjusted" && (
+                <Badge variant="outline" className="text-amber-400 border-amber-400/30">Scenario Mode</Badge>
+              )}
             </CardContent>
           </Card>
           <Card className="border-border/50">
             <CardContent className="pt-6 grid grid-cols-2 gap-4">
-              <M label="Beds / Bath / Car" value={`${p.beds} / ${p.baths} / ${p.cars}`} />
-              <M label="Internal" value={`${p.internalSqm} sqm`} sub={p.totalSqm !== p.internalSqm ? `${p.totalSqm} sqm total` : undefined} />
-              <M label="Floor Level" value={`Level ${p.floor}`} />
-              <M label="Days on Market" value={`${p.daysOnMarket}`} sub={`Median: ${p.medianDays}`} accent={p.daysOnMarket > p.medianDays * 1.5} />
-              <M label="Current Rent" value={`$${p.currentRentWeekly}/wk`} sub={p.leaseEnd !== "N/A" ? `Until ${p.leaseEnd}` : "Estimated"} />
-              <M label="Gross Yield" value={`${p.grossYield}%`} sub={`Net: ${p.netYield}%`} accent={p.grossYield >= 6} />
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Beds / Bath / Car</p>
+                <p className="font-mono text-lg font-semibold">{p.beds} / {p.baths} / {p.cars}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Internal</p>
+                <p className="font-mono text-lg font-semibold">{p.internalSqm} sqm</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Floor Level</p>
+                <p className="font-mono text-lg font-semibold">Level {p.floor}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Gross Yield</p>
+                <p className={`font-mono text-lg font-semibold ${effective.grossYield >= 6 ? "text-amber-400" : ""}`}>{effective.grossYield}%</p>
+                <p className="text-xs text-muted-foreground">Net: {effective.netYield}%</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Current Rent</p>
+                <p className="font-mono text-lg font-semibold">${effective.ltrWeekly}/wk</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Cashflow</p>
+                <p className={`font-mono text-lg font-semibold ${effective.annualCashflow >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {fmt(effective.annualCashflow)}/yr
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
+      {/* Features */}
       <div className="flex flex-wrap gap-2">
         {p.features.map(f => <Badge key={f} variant="outline" className="text-xs font-normal">{f}</Badge>)}
       </div>
+
+      {/* Scenario Bar */}
+      <ScenarioBar
+        mode={scenario.mode}
+        setMode={scenario.setMode}
+        adjustments={scenario.adjustments}
+        updateField={scenario.updateField}
+        savedScenarios={scenario.savedScenarios}
+        saveCurrentScenario={scenario.saveCurrentScenario}
+        loadScenario={scenario.loadScenario}
+        deleteScenario={scenario.deleteScenario}
+        resetToDefaults={scenario.resetToDefaults}
+      />
+
+      {/* Scenario Editor (only in adjusted mode) */}
+      {mode === "adjusted" && (
+        <ScenarioEditor
+          adjustments={adjustments}
+          updateField={scenario.updateField}
+          baseProperty={p}
+        />
+      )}
+
       <Separator className="opacity-30" />
 
       {/* Tabs */}
@@ -259,217 +292,124 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
             <TabsTrigger value="rental">Rental</TabsTrigger>
             <TabsTrigger value="comps">Comps</TabsTrigger>
             <TabsTrigger value="investment">Investment</TabsTrigger>
+            <TabsTrigger value="projection">5yr Projection</TabsTrigger>
+            <TabsTrigger value="calculator">Calculator</TabsTrigger>
             <TabsTrigger value="negotiation">Negotiate</TabsTrigger>
           </TabsList>
         </div>
 
-        {/* Costs */}
         <TabsContent value="costs">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2 border-border/50">
-              <CardHeader><CardTitle className="text-base">Acquisition Cost Breakdown</CardTitle></CardHeader>
+          <CostsTab p={effective} derived={mode === "adjusted" ? derived : undefined} />
+          <div className="mt-6">
+            <Card className="border-border/50">
+              <CardHeader><CardTitle className="text-base">Cost Breakdown</CardTitle></CardHeader>
               <CardContent>
-                <CostRow label="Stamp Duty (NSW Investor)" amount={p.stampDuty} />
-                <CostRow label="Conveyancing" amount={2000} />
-                <CostRow label="Legal Fees" amount={2500} />
-                <CostRow label="Building Inspection" amount={700} />
-                <CostRow label="Pest Inspection" amount={400} />
-                <CostRow label="Strata Report" amount={300} />
-                <CostRow label="Title Search" amount={350} />
-                <CostRow label="Mortgage Registration" amount={154.20} />
-                <CostRow label="Transfer Registration" amount={154.20} />
-                <CostRow label="Loan Application Fee" amount={600} />
-                <CostRow label="Depreciation Schedule" amount={750} />
-                <Separator className="my-2 opacity-30" />
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm font-semibold">Total Acquisition Costs</span>
-                  <span className="font-mono text-sm font-semibold text-amber-400">{fmt(p.totalAcquisition)}</span>
-                </div>
+                <AcquisitionDonut
+                  stampDuty={effective.stampDuty}
+                  conveyancing={derived.conveyancing}
+                  legalFees={derived.legalFees}
+                  buildingInspection={derived.buildingInspection}
+                  pestInspection={derived.pestInspection}
+                  strataReport={derived.strataReport}
+                  titleSearch={derived.titleSearch}
+                  mortgageRegistration={derived.mortgageRegistration}
+                  transferRegistration={derived.transferRegistration}
+                  loanApplicationFee={derived.loanApplicationFee}
+                  depreciationSchedule={derived.depreciationSchedule}
+                />
               </CardContent>
             </Card>
-            <div className="space-y-4">
+          </div>
+        </TabsContent>
+
+        <TabsContent value="rental">
+          <RentalTab p={effective} />
+          <div className="mt-6">
+            <Card className="border-border/50">
+              <CardHeader><CardTitle className="text-base">Yield Comparison</CardTitle></CardHeader>
+              <CardContent>
+                <RentalBar
+                  ltrGrossYield={effective.ltrGrossYield}
+                  ltrNetYield={effective.ltrNetYield}
+                  strGrossYield={effective.strGrossYield}
+                  strNetYield={effective.strNetYield}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="comps">
+          <CompsTab p={effective} />
+          {p.comparables.filter(c => c.sqm > 0).length >= 2 && (
+            <div className="mt-6">
               <Card className="border-border/50">
-                <CardHeader><CardTitle className="text-base">Loan Structure</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <M label="Purchase Price" value={fmt(p.price)} />
-                  <M label="Deposit (20%)" value={fmt(p.deposit)} />
-                  <M label="Loan Amount" value={fmt(p.loanAmount)} />
-                  <Separator className="opacity-30" />
-                  <M label="Total Cash Required" value={fmt(p.totalCashRequired)} accent />
-                </CardContent>
-              </Card>
-              <Card className="border-border/50">
-                <CardHeader><CardTitle className="text-base">Holding Costs (Annual)</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">Price vs Size</CardTitle></CardHeader>
                 <CardContent>
-                  <CostRow label="Strata" amount={p.strataAnnual} />
-                  <CostRow label="Council Rates" amount={p.councilAnnual} />
-                  <CostRow label="Water Rates" amount={p.waterAnnual} />
-                  <CostRow label="Insurance" amount={1800} />
-                  <CostRow label="PM (8.5%)" amount={Math.round(p.ltrAnnual * 0.085)} />
-                  <Separator className="my-2 opacity-30" />
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-sm font-semibold">Total</span>
-                    <span className="font-mono text-sm font-semibold text-amber-400">{fmt(p.annualHolding)}</span>
-                  </div>
+                  <CompsScatter
+                    subject={{ sqm: p.internalSqm, price: p.price, label: p.address.replace(" / ", "/") }}
+                    comps={p.comparables.filter(c => c.sqm > 0).map(c => ({
+                      sqm: c.sqm, price: c.price, label: c.address, similarity: c.similarity,
+                    }))}
+                  />
                 </CardContent>
               </Card>
             </div>
-          </div>
+          )}
         </TabsContent>
 
-        {/* Rental */}
-        <TabsContent value="rental">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-border/50">
-              <CardHeader><div className="flex items-center justify-between"><CardTitle className="text-base">Long-Term Rental</CardTitle><Badge>Recommended</Badge></div></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <M label="Weekly Rent" value={`$${p.ltrWeekly}/wk`} />
-                  <M label="Annual Rent" value={fmt(p.ltrAnnual)} />
-                  <M label="Gross Yield" value={`${p.ltrGrossYield}%`} accent={p.ltrGrossYield >= 6} />
-                  <M label="Net Yield" value={`${p.ltrNetYield}%`} accent={p.ltrNetYield >= 5} />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-border/50">
-              <CardHeader><div className="flex items-center justify-between"><CardTitle className="text-base">Short-Term Rental</CardTitle><Badge variant="outline">Alternative</Badge></div></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <M label="Nightly Rate" value={`$${p.strNightly}/night`} />
-                  <M label="Occupancy" value={`${p.strOccupancy}%`} />
-                  <M label="Gross Yield" value={`${p.strGrossYield}%`} />
-                  <M label="Net Yield" value={`${p.strNetYield}%`} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Comps */}
-        <TabsContent value="comps">
-          <Card className="border-border/50">
-            <CardHeader><CardTitle className="text-base">Comparable Sales</CardTitle></CardHeader>
-            <CardContent className="overflow-x-auto -mx-6 px-6">
-              <div className="min-w-[640px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Address</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Sqm</TableHead>
-                    <TableHead className="text-right">$/sqm</TableHead>
-                    <TableHead className="text-center">Config</TableHead>
-                    <TableHead className="text-right">Date</TableHead>
-                    <TableHead className="text-right">Similarity</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow className="bg-amber-400/5">
-                    <TableCell className="font-medium">{p.address.replace(" / ", "/")} <span className="text-xs text-amber-400">(Subject)</span></TableCell>
-                    <TableCell className="text-right font-mono">{fmt(p.price)}</TableCell>
-                    <TableCell className="text-right font-mono">{p.internalSqm}</TableCell>
-                    <TableCell className="text-right font-mono text-amber-400">{fmt(priceSqm)}</TableCell>
-                    <TableCell className="text-center">{p.beds}/{p.baths}/{p.cars}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">Listed</TableCell>
-                    <TableCell className="text-right">&mdash;</TableCell>
-                  </TableRow>
-                  {p.comparables.map(c => (
-                    <TableRow key={c.address}>
-                      <TableCell className="font-medium">{c.address}</TableCell>
-                      <TableCell className="text-right font-mono">{fmt(c.price)}</TableCell>
-                      <TableCell className="text-right font-mono">{c.sqm || "\u2014"}</TableCell>
-                      <TableCell className="text-right font-mono">{c.priceSqm ? fmt(c.priceSqm) : "\u2014"}</TableCell>
-                      <TableCell className="text-center">{c.beds}/{c.baths}/{c.cars}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">{c.date}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Progress value={c.similarity} className="w-12 h-1.5" />
-                          <span className="font-mono text-xs">{c.similarity}%</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Investment */}
         <TabsContent value="investment">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <InvestmentTab p={effective} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
             <Card className="border-border/50">
-              <CardHeader><CardTitle className="text-base">Annual Cashflow</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between py-1.5">
-                  <span className="text-sm text-emerald-400">+ Net Rental</span>
-                  <span className="font-mono text-sm text-emerald-400">{fmt(Math.round(p.ltrAnnual * 0.965))}</span>
-                </div>
-                <div className="flex justify-between py-1.5">
-                  <span className="text-sm text-red-400">- Interest ({p.interestRate}%)</span>
-                  <span className="font-mono text-sm text-red-400">({fmt(p.annualInterest)})</span>
-                </div>
-                <div className="flex justify-between py-1.5">
-                  <span className="text-sm text-red-400">- Holding Costs</span>
-                  <span className="font-mono text-sm text-red-400">({fmt(p.annualHolding)})</span>
-                </div>
-                <Separator className="opacity-30" />
-                <div className="flex justify-between py-2">
-                  <span className="font-semibold">Net Cashflow</span>
-                  <span className={`font-mono font-bold ${p.annualCashflow >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(p.annualCashflow)}</span>
-                </div>
+              <CardHeader><CardTitle className="text-base">Cashflow Breakdown</CardTitle></CardHeader>
+              <CardContent>
+                <CashflowWaterfall
+                  netRental={effective.ltrAnnual * 0.965}
+                  annualInterest={effective.annualInterest}
+                  annualHolding={effective.annualHolding}
+                  annualCashflow={effective.annualCashflow}
+                />
               </CardContent>
             </Card>
             <Card className="border-border/50">
-              <CardHeader><CardTitle className="text-base">Yields</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <M label="Gross Yield" value={`${p.grossYield}%`} />
-                <M label="Net Yield" value={`${p.netYield}%`} />
-                <M label="Cap Rate" value={`${p.capRate}%`} />
-                <M label="Cash-on-Cash" value={`${p.cashOnCash}%`} accent />
-              </CardContent>
-            </Card>
-            <Card className="border-border/50">
-              <CardHeader><CardTitle className="text-base">5-Year Projection</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <M label="CAGR" value={`${p.fiveYearCagr}%`} />
-                <M label="Projected Value" value={fmt(Math.round(p.price * Math.pow(1 + p.fiveYearCagr / 100, 5)))} />
-                <M label="Projected Equity" value={fmt(p.fiveYearEquity)} accent />
-                <M label="Price to Median" value={`${p.priceToMedian}x`} sub={`Median: ${fmt(p.suburbMedian)}`} />
+              <CardHeader><CardTitle className="text-base">Market Position</CardTitle></CardHeader>
+              <CardContent>
+                <MarketPosition
+                  suburbMedian={p.suburbMedian}
+                  propertyPrice={p.price}
+                  propertyLabel={p.building}
+                />
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Negotiation */}
-        <TabsContent value="negotiation">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-1 border-amber-400/30 bg-amber-400/5">
-              <CardHeader><CardTitle className="text-base text-amber-400">Target Range</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <M label="Opening Offer" value={fmt(p.openingOffer)} accent />
-                <M label="Target" value={`${fmt(p.targetLow)} \u2013 ${fmt(p.targetHigh)}`} />
-                <M label="Walk-Away" value={fmt(p.walkAway)} sub="Maximum. Do not exceed." />
-              </CardContent>
-            </Card>
-            <Card className="lg:col-span-2 border-border/50">
-              <CardHeader><CardTitle className="text-base">Leverage Points</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {p.leveragePoints.map((pt, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="flex-shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                      <span className="text-xs font-mono font-bold text-muted-foreground">{i + 1}</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{pt.title}</p>
-                      <p className="text-xs text-muted-foreground">{pt.detail}</p>
-                    </div>
-                  </div>
-                ))}
+        <TabsContent value="projection">
+          <ProjectionTab property={p} adjustments={adjustments} mode={mode} />
+          <div className="mt-6">
+            <Card className="border-border/50">
+              <CardHeader><CardTitle className="text-base">Equity & Cashflow Projection</CardTitle></CardHeader>
+              <CardContent>
+                <ProjectionLine
+                  projections={projections.map(yr => ({
+                    year: yr.year,
+                    equity: yr.equity,
+                    cumulativeCashflow: yr.cumulativeCashflow,
+                    propertyValue: yr.propertyValue,
+                  }))}
+                />
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="calculator">
+          <CalculatorTab property={effective} />
+        </TabsContent>
+
+        <TabsContent value="negotiation">
+          <NegotiationTab p={p} />
         </TabsContent>
       </Tabs>
 
@@ -535,7 +475,6 @@ export default function Page() {
               ))}
             </div>
 
-            {/* Quick comparison strip */}
             <Card className="border-border/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -545,37 +484,37 @@ export default function Page() {
               </CardHeader>
               <CardContent className="overflow-x-auto -mx-6 px-6">
                 <div className="min-w-[640px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="sticky left-0 bg-card z-10">Property</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-right">Score</TableHead>
-                      <TableHead className="text-right">Yield</TableHead>
-                      <TableHead className="text-right">Cashflow</TableHead>
-                      <TableHead className="text-right hidden sm:table-cell">Cash Req.</TableHead>
-                      <TableHead className="text-center">Rec</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {properties.map(p => (
-                      <TableRow key={p.slug} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSlug(p.slug); setView("detail"); }}>
-                        <TableCell className="sticky left-0 bg-card z-10">
-                          <div>
-                            <p className="font-medium text-sm">{p.address.split("/")[0].trim()}/{p.address.split("/")[1]?.split(",")[0]?.trim()}</p>
-                            <p className="text-xs text-muted-foreground">{p.building} &middot; {p.beds}b{p.baths}b{p.cars}c</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm">{p.priceDisplay}</TableCell>
-                        <TableCell className="text-right"><span className={`font-mono font-semibold ${scoreColor(p.score)}`}>{p.score}</span></TableCell>
-                        <TableCell className="text-right font-mono text-sm">{p.grossYield}%</TableCell>
-                        <TableCell className={`text-right font-mono text-sm ${p.annualCashflow >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(p.annualCashflow)}</TableCell>
-                        <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{fmt(p.totalCashRequired)}</TableCell>
-                        <TableCell className="text-center"><Badge variant={recVariant(p.recommendation)} className="text-xs">{p.recommendation}</Badge></TableCell>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="sticky left-0 bg-card z-10">Property</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="text-right">Score</TableHead>
+                        <TableHead className="text-right">Yield</TableHead>
+                        <TableHead className="text-right">Cashflow</TableHead>
+                        <TableHead className="text-right hidden sm:table-cell">Cash Req.</TableHead>
+                        <TableHead className="text-center">Rec</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {properties.map(p => (
+                        <TableRow key={p.slug} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSlug(p.slug); setView("detail"); }}>
+                          <TableCell className="sticky left-0 bg-card z-10">
+                            <div>
+                              <p className="font-medium text-sm">{p.address.split("/")[0].trim()}/{p.address.split("/")[1]?.split(",")[0]?.trim()}</p>
+                              <p className="text-xs text-muted-foreground">{p.building} &middot; {p.beds}b{p.baths}b{p.cars}c</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">{p.priceDisplay}</TableCell>
+                          <TableCell className="text-right"><span className={`font-mono font-semibold ${scoreColor(p.score)}`}>{p.score}</span></TableCell>
+                          <TableCell className="text-right font-mono text-sm">{p.grossYield}%</TableCell>
+                          <TableCell className={`text-right font-mono text-sm ${p.annualCashflow >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(p.annualCashflow)}</TableCell>
+                          <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{fmt(p.totalCashRequired)}</TableCell>
+                          <TableCell className="text-center"><Badge variant={recVariant(p.recommendation)} className="text-xs">{p.recommendation}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
