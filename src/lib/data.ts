@@ -6,6 +6,8 @@ export type Property = {
   architect: string;
   price: number;
   priceDisplay: string;
+  priceVerified: boolean;
+  priceSource?: string;
   type: string;
   beds: number;
   baths: number;
@@ -88,6 +90,8 @@ export const properties: Property[] = [
     architect: "Foster & Partners",
     price: 1_350_000,
     priceDisplay: "$1,350,000",
+    priceVerified: true,
+    priceSource: "Listed price (Ayre Real Estate)",
     type: "Apartment",
     beds: 1, baths: 1, cars: 1,
     internalSqm: 63, totalSqm: 82,
@@ -130,6 +134,8 @@ export const properties: Property[] = [
     architect: "BVN Architecture",
     price: 1_640_000,
     priceDisplay: "$1,640,000",
+    priceVerified: true,
+    priceSource: "Domain mid-estimate (Contact Agent listing)",
     type: "Apartment",
     beds: 2, baths: 2, cars: 0,
     internalSqm: 91, totalSqm: 91,
@@ -170,8 +176,10 @@ export const properties: Property[] = [
     suburb: "Sydney NSW 2000",
     building: "Greenland Centre",
     architect: "BVN & Woods Bagot",
-    price: 650_000,
-    priceDisplay: "~$650,000",
+    price: 1_020_000,
+    priceDisplay: "~$1,020,000",
+    priceVerified: false,
+    priceSource: "Comp-based estimate: 1709/117 Bathurst St sold $1,020,000 on 27 Mar 2026 (same complex, 1-bed+study, 1 bath, 0 cars, 68sqm, L17). Listing is Contact Agent — actual guide unverified.",
     type: "Apartment",
     beds: 1, baths: 1, cars: 0,
     internalSqm: 72, totalSqm: 72,
@@ -182,28 +190,30 @@ export const properties: Property[] = [
     strataAnnual: 4_704, councilAnnual: 680, waterAnnual: 732,
     heroImage: "/hero-1702-115-bathurst.jpg",
     features: ["North-Facing Balcony", "City Skyline Views", "Marble Benchtop", "Miele Appliances", "Gas Cooking", "Ducted AC", "Study Nook", "Internal Laundry", "NBN 2Gbps", "24/7 Concierge", "Lap Pool", "Gym"],
-    stampDuty: 23_985, totalAcquisition: 31_893, deposit: 130_000, loanAmount: 520_000, totalCashRequired: 161_893,
-    ltrWeekly: 1_175, ltrAnnual: 61_100, ltrGrossYield: 9.40, ltrNetYield: 7.46,
-    strNightly: 250, strOccupancy: 60, strAnnualRevenue: 54_750, strGrossYield: 8.42, strNetYield: 5.29,
+    // Stamp duty at $1,020,000: $10,530 + (($1,020,000 - $351,000) / 100 * $4.50) = $10,530 + $30,105 = $40,635
+    stampDuty: 40_635, totalAcquisition: 48_543, deposit: 204_000, loanAmount: 816_000, totalCashRequired: 252_543,
+    ltrWeekly: 1_175, ltrAnnual: 61_100, ltrGrossYield: 5.99, ltrNetYield: 4.50,
+    strNightly: 250, strOccupancy: 60, strAnnualRevenue: 54_750, strGrossYield: 5.37, strNetYield: 3.38,
     recommendedStrategy: "Long-Term Rental",
-    score: 82, recommendation: "STRONG BUY", riskRating: "LOW",
-    grossYield: 9.40, netYield: 7.46, capRate: 7.46, cashOnCash: 7.47,
-    annualCashflow: 12_099, annualHolding: 12_593, annualInterest: 36_408, interestRate: 5.76,
-    fiveYearCagr: 4.0, fiveYearEquity: 271_000, suburbMedian: 770_000, priceToMedian: 0.844,
-    targetLow: 600_000, targetHigh: 630_000, openingOffer: 580_000, walkAway: 650_000,
+    // Score recalculated at $1,020,000
+    score: 56, recommendation: "HOLD", riskRating: "MEDIUM",
+    grossYield: 5.99, netYield: 4.50, capRate: 4.50, cashOnCash: -1.55,
+    annualCashflow: -3_924, annualHolding: 13_110, annualInterest: 49_776, interestRate: 6.10,
+    fiveYearCagr: 4.0, fiveYearEquity: 425_000, suburbMedian: 770_000, priceToMedian: 1.325,
+    targetLow: 920_000, targetHigh: 980_000, openingOffer: 900_000, walkAway: 1_020_000,
     leveragePoints: [
-      { title: "36% Below Closest Comp", detail: "1709/117 Bathurst (same building, 1-bed) sold $1,020,000. This at $650k is exceptional." },
-      { title: "Verify Price with Agent", detail: "Contact Agent listing — $650k guide seems too good. Confirm before proceeding." },
-      { title: "No Car Space", detail: "Reduces buyer pool. Use as minor leverage point." },
-      { title: "Building Oversupply", detail: "25+ units for sale in Greenland Centre complex." },
-      { title: "Just Listed", detail: "First-mover advantage if price is genuine. Act fast." },
-      { title: "Positive Cashflow at Asking", detail: "+$12,099/yr cashflow — rare in Sydney CBD. Strengthens any offer." },
+      { title: "Contact Agent — Price Unknown", detail: "No listed price. Comp 1709/117 Bathurst (same complex, same config, L17) sold $1,020,000 on 27 Mar 2026. Use as anchor." },
+      { title: "Lower Floor Than Key Comps", detail: "L17 vs higher-floor premiums. 3806 (L38) in same complex listed significantly higher. Floor discount justified." },
+      { title: "No Car Space", detail: "Reduces buyer pool and resale value. 101 Bathurst units with parking sell at 20%+ premium." },
+      { title: "Building Oversupply", detail: "25+ units for sale across Greenland Centre complex. High supply = buyer leverage." },
+      { title: "Strong Rental at $1,175/wk", detail: "Agent estimates $1,100-$1,250/wk. At $1,175/wk gross yield is 5.99% — above suburb median of ~4.3%." },
+      { title: "Just Listed — Establish Floor", detail: "Fresh listing with 987 page views. First offer sets the tone. Go in early and firm." },
     ],
     comparables: [
       { address: "1709/117 Bathurst St", price: 1_020_000, date: "27 Mar 2026", sqm: 68, priceSqm: 15_000, beds: 1, baths: 1, cars: 0, similarity: 90 },
       { address: "608/83 Harbour St", price: 965_000, date: "29 Mar 2026", sqm: 0, priceSqm: 0, beds: 1, baths: 1, cars: 0, similarity: 75 },
       { address: "2804/1-5 Hosking Pl", price: 750_000, date: "27 Mar 2026", sqm: 0, priceSqm: 0, beds: 1, baths: 1, cars: 0, similarity: 70 },
     ],
-    aiSummary: "Level 17, 1-bed+study in Greenland Centre at ~$650k — 36% below the closest comparable ($1.02m). If the price guide is genuine, this is a rare positive-cashflow opportunity in Sydney CBD at 9.4% gross yield and +$12k/yr cashflow. CAVEAT: 'Contact Agent' pricing needs verification. Act fast — just listed with 987 page views.",
+    aiSummary: "Level 17, 1-bed+study (72sqm) in Greenland Centre. PRICE UNVERIFIED \u2014 listing is 'Contact Agent'. Comp-based estimate of $1,020,000 from 1709/117 Bathurst (same complex, same config, same floor, 68sqm, sold 27 Mar 2026). At that price: 5.99% gross yield on $1,175/wk rent, nearly break-even cashflow at -$3,924/yr. The 72sqm unit is 4sqm larger than the comp, which may justify a modest premium. Building has 25+ units for sale — oversupply favours buyers. Key action: contact agent to establish actual price guide before modelling further.",
   },
 ];

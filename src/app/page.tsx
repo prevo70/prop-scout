@@ -89,7 +89,10 @@ function PropertyCard({ p, onClick }: { p: Property; onClick: () => void }) {
           <Badge variant={recVariant(p.recommendation)} className="text-xs">{p.recommendation}</Badge>
         </div>
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-          <p className="text-white font-mono text-xl font-bold">{p.priceDisplay}</p>
+          <p className="text-white font-mono text-xl font-bold">
+            {p.priceDisplay}
+            {!p.priceVerified && <span className="ml-2 text-xs font-normal text-amber-400 bg-amber-400/20 px-1.5 py-0.5 rounded">UNVERIFIED</span>}
+          </p>
         </div>
       </div>
       <CardContent className="pt-4 space-y-3">
@@ -129,7 +132,7 @@ function PropertyCard({ p, onClick }: { p: Property; onClick: () => void }) {
 
 function ComparisonView() {
   const metrics: { label: string; fn: (p: Property) => string; highlight?: (p: Property) => boolean }[] = [
-    { label: "Price", fn: p => p.priceDisplay },
+    { label: "Price", fn: p => `${p.priceDisplay}${!p.priceVerified ? " *" : ""}` },
     { label: "Beds / Bath / Car", fn: p => `${p.beds} / ${p.baths} / ${p.cars}` },
     { label: "Internal Area", fn: p => `${p.internalSqm} sqm` },
     { label: "Floor Level", fn: p => `Level ${p.floor}` },
@@ -211,6 +214,11 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
               <div className="text-right">
                 <p className="text-white font-mono text-2xl font-bold">{p.priceDisplay}</p>
                 <p className="text-white/60 text-xs font-mono">{fmt(priceSqm)}/sqm</p>
+                {!p.priceVerified && (
+                  <p className="text-amber-400 text-xs mt-1 bg-amber-400/20 px-2 py-0.5 rounded inline-block">
+                    Price unverified — comp-based estimate
+                  </p>
+                )}
               </div>
             </div>
           </div>
