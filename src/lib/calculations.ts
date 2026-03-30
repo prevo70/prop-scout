@@ -11,6 +11,8 @@ import {
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface DerivedValues {
+  // Resolved purchase price (may differ from base if adjusted)
+  purchasePrice: number;
   // Resolved acquisition line items
   conveyancing: number;
   legalFees: number;
@@ -83,6 +85,14 @@ export function recalculate(
 ): DerivedValues {
   const isCash = adj.isCashPurchase;
 
+  // Resolve purchase price (can be overridden in scenario)
+  const purchasePrice = adj.purchasePrice ?? base.price;
+
+  // Recalculate stamp duty if purchase price changed
+  const stampDuty = adj.purchasePrice != null
+    ? calculateNswStampDuty(purchasePrice)
+    : base.stampDuty;
+
   // Resolve acquisition line items
   const conveyancing = adj.conveyancing ?? DAC.conveyancing;
   const legalFees = adj.legalFees ?? DAC.legalFees;
@@ -95,9 +105,6 @@ export function recalculate(
   const loanApplicationFee = isCash ? 0 : (adj.loanApplicationFee ?? DAC.loanApplicationFee);
   const depreciationSchedule = adj.depreciationSchedule ?? DAC.depreciationSchedule;
 
-  // Stamp duty stays from base (pre-computed NSW rates)
-  const stampDuty = base.stampDuty;
-
   const totalAcquisition =
     stampDuty +
     conveyancing + legalFees + buildingInspection + pestInspection +
@@ -106,10 +113,10 @@ export function recalculate(
 
   // Loan
   const depositPercent = adj.depositPercent ?? DL.depositPercent;
-  const deposit = isCash ? base.price : Math.round(base.price * depositPercent / 100);
-  const loanAmount = isCash ? 0 : base.price - deposit;
+  const deposit = isCash ? purchasePrice : Math.round(purchasePrice * depositPercent / 100);
+  const loanAmount = isCash ? 0 : purchasePrice - deposit;
   const totalCashRequired = isCash
-    ? base.price + totalAcquisition
+    ? purchasePrice + totalAcquisition
     : deposit + totalAcquisition;
 
   // Holding
@@ -127,13 +134,10 @@ export function recalculate(
 
   const annualHolding = strataAnnual + councilAnnual + waterAnnual + insurance + pmCost;
 
-  // Yields
-  const ltrGrossYield = round2((ltrAnnual / base.price) * 100);
-  const ltrNetYield = round2(((ltrNetRental - annualHolding + pmCost) / base.price) * 100);
-  // Net yield = (net rental - holding costs excluding PM since it's already in holding) / price
-  // Actually: net yield = (net rental - non-PM holding) / price is cleaner
-  // Let's use: (ltrNetRental - (annualHolding)) / price — annualHolding already includes PM
-  const netYieldCalc = round2(((ltrNetRental - annualHolding) / base.price) * 100);
+  // Yields (all based on resolved purchase price)
+  const ltrGrossYield = purchasePrice > 0 ? round2((ltrAnnual / purchasePrice) * 100) : 0;
+  const netYieldCalc = purchasePrice > 0 ? round2(((ltrNetRental - annualHolding) / purchasePrice) * 100) : 0;
+  const ltrNetYield = netYieldCalc;
 
   // Interest
   const interestRate = adj.interestRate ?? DL.interestRate;
@@ -148,7 +152,7 @@ export function recalculate(
 
   // Cap rate: NOI / price (NOI = net rental - holding, before debt)
   const noi = ltrNetRental - annualHolding;
-  const capRate = round2((noi / base.price) * 100);
+  const capRate = purchasePrice > 0 ? round2((noi / purchasePrice) * 100) : 0;
 
   // Cash-on-cash
   const cashOnCash = totalCashRequired > 0
@@ -160,9 +164,10 @@ export function recalculate(
   const strOccupancy = adj.strOccupancy ?? base.strOccupancy;
   const bookedNights = Math.round(365 * strOccupancy / 100);
   const strAnnualRevenue = strNightly * bookedNights;
-  const strGrossYield = round2((strAnnualRevenue / base.price) * 100);
+  const strGrossYield = purchasePrice > 0 ? round2((strAnnualRevenue / purchasePrice) * 100) : 0;
 
   return {
+    purchasePrice,
     conveyancing, legalFees, buildingInspection, pestInspection,
     strataReport, titleSearch, mortgageRegistration, transferRegistration,
     loanApplicationFee, depreciationSchedule,
@@ -173,6 +178,20 @@ export function recalculate(
     interestRate, annualInterest, annualCashflow,
     grossYield, netYield, capRate, cashOnCash, depositPercent,
   };
+}
+
+// ─── NSW Stamp Duty Calculator ───────────────────────────────────────────────
+
+function calculateNswStampDuty(price: number): number {
+  // NSW 2025-26 investor rates (non-first-home-buyer)
+  if (price <= 17_000) return Math.round(price * 1.25 / 100);
+  if (price <= 35_000) return Math.round(213 + (price - 17_000) * 1.50 / 100);
+  if (price <= 93_000) return Math.round(483 + (price - 35_000) * 1.75 / 100);
+  if (price <= 351_000) return Math.round(1_498 + (price - 93_000) * 3.50 / 100);
+  if (price <= 1_168_000) return Math.round(10_530 + (price - 351_000) * 4.50 / 100);
+  if (price <= 3_721_000) return Math.round(47_295 + (price - 1_168_000) * 5.50 / 100);
+  // Premium property
+  return Math.round(47_295 + (3_721_000 - 1_168_000) * 5.50 / 100 + (price - 3_721_000) * 7.00 / 100);
 }
 
 // ─── 5-Year Projection ──────────────────────────────────────────────────────
@@ -192,7 +211,7 @@ export function projectFiveYears(
   let cumCashflow = 0;
 
   for (let y = 1; y <= 5; y++) {
-    const propertyValue = Math.round(base.price * Math.pow(1 + capitalGrowth, y));
+    const propertyValue = Math.round(derived.purchasePrice * Math.pow(1 + capitalGrowth, y));
     const equity = propertyValue - derived.loanAmount;
     const annualRent = Math.round(derived.ltrWeekly * 52 * Math.pow(1 + rentGrowth, y));
     const strata = Math.round((adj.strataAnnual ?? base.strataAnnual) * Math.pow(1 + strataGrowth, y));

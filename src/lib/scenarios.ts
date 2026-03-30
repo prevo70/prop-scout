@@ -1,4 +1,6 @@
 export interface ScenarioAdjustments {
+  // Purchase price override
+  purchasePrice?: number;
   // Acquisition overrides
   conveyancing?: number;
   legalFees?: number;

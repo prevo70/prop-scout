@@ -81,6 +81,12 @@ export function ScenarioEditor({
 }: ScenarioEditorProps) {
   const sections: { title: string; fields: FieldDef[] }[] = [
     {
+      title: "Purchase Price",
+      fields: [
+        { key: "purchasePrice", label: "Purchase Price", placeholder: baseProperty.price, step: 10000, prefix: "$" },
+      ],
+    },
+    {
       title: "Acquisition Costs",
       fields: [
         { key: "conveyancing", label: "Conveyancing", placeholder: DAC.conveyancing, step: 100, prefix: "$" },

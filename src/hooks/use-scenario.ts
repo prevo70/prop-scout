@@ -35,6 +35,10 @@ export function useScenario(property: Property) {
     if (mode === "model") return property;
     return {
       ...property,
+      price: derived.purchasePrice,
+      priceDisplay: derived.purchasePrice !== property.price
+        ? `~${new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(derived.purchasePrice)}`
+        : property.priceDisplay,
       stampDuty: derived.stampDuty,
       totalAcquisition: derived.totalAcquisition,
       deposit: derived.deposit,
