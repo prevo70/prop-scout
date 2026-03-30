@@ -18,6 +18,7 @@ import { RentalTab } from "@/components/detail/rental-tab";
 import { CompsTab } from "@/components/detail/comps-tab";
 import { InvestmentTab } from "@/components/detail/investment-tab";
 import { NegotiationTab } from "@/components/detail/negotiation-tab";
+import { TaxTab } from "@/components/detail/tax-tab";
 import { ProjectionTab } from "@/components/detail/projection-tab";
 import { CalculatorTab } from "@/components/detail/calculator-tab";
 
@@ -294,6 +295,7 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
             <TabsTrigger value="investment">Investment</TabsTrigger>
             <TabsTrigger value="projection">5yr Projection</TabsTrigger>
             <TabsTrigger value="calculator">Calculator</TabsTrigger>
+            <TabsTrigger value="tax">Tax Impact</TabsTrigger>
             <TabsTrigger value="negotiation">Negotiate</TabsTrigger>
           </TabsList>
         </div>
@@ -406,6 +408,10 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
 
         <TabsContent value="calculator">
           <CalculatorTab property={effective} />
+        </TabsContent>
+
+        <TabsContent value="tax">
+          <TaxTab property={p} derived={derived} />
         </TabsContent>
 
         <TabsContent value="negotiation">
