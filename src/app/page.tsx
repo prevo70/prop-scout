@@ -101,7 +101,7 @@ function PropertyCard({ p, onClick }: { p: Property; onClick: () => void }) {
           <h3 className="font-semibold text-sm">{p.address}</h3>
           <p className="text-xs text-muted-foreground">{p.suburb}</p>
         </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span>{p.beds} Bed</span>
           <span>{p.baths} Bath</span>
           <span>{p.cars} Car</span>
@@ -156,36 +156,38 @@ function ComparisonView() {
   ];
 
   return (
-    <Card className="border-border/50 overflow-x-auto">
+    <Card className="border-border/50">
       <CardHeader><CardTitle className="text-base">Side-by-Side Comparison</CardTitle></CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-48">Metric</TableHead>
-              {properties.map(p => (
-                <TableHead key={p.slug} className="text-center min-w-[180px]">
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">{p.building}</p>
-                    <p className="font-medium text-sm">{p.address.split("/")[0].trim()}</p>
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {metrics.map(m => (
-              <TableRow key={m.label}>
-                <TableCell className="text-sm text-muted-foreground font-medium">{m.label}</TableCell>
+      <CardContent className="overflow-x-auto -mx-6 px-6">
+        <div className="min-w-[700px]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-40 sticky left-0 bg-card z-10">Metric</TableHead>
                 {properties.map(p => (
-                  <TableCell key={p.slug} className={`text-center font-mono text-sm ${m.highlight?.(p) ? "text-emerald-400 font-semibold" : ""}`}>
-                    {m.fn(p)}
-                  </TableCell>
+                  <TableHead key={p.slug} className="text-center min-w-[160px]">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">{p.building}</p>
+                      <p className="font-medium text-sm">{p.address.split("/")[0].trim()}</p>
+                    </div>
+                  </TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {metrics.map(m => (
+                <TableRow key={m.label}>
+                  <TableCell className="text-sm text-muted-foreground font-medium sticky left-0 bg-card z-10">{m.label}</TableCell>
+                  {properties.map(p => (
+                    <TableCell key={p.slug} className={`text-center font-mono text-sm ${m.highlight?.(p) ? "text-emerald-400 font-semibold" : ""}`}>
+                      {m.fn(p)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );
@@ -204,19 +206,19 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
         <div className="lg:col-span-3 relative rounded-xl overflow-hidden aspect-[16/9] bg-muted">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={p.heroImage} alt={p.address} className="w-full h-full object-cover" />
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6">
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-white/60 text-xs font-medium uppercase tracking-wider mb-1">{p.building} by {p.architect}</p>
-                <h1 className="text-white text-2xl font-semibold">{p.address}</h1>
-                <p className="text-white/70 text-sm">{p.suburb}</p>
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-white/60 text-[10px] sm:text-xs font-medium uppercase tracking-wider mb-0.5">{p.building} by {p.architect}</p>
+                <h1 className="text-white text-lg sm:text-2xl font-semibold leading-tight">{p.address}</h1>
+                <p className="text-white/70 text-xs sm:text-sm">{p.suburb}</p>
               </div>
-              <div className="text-right">
-                <p className="text-white font-mono text-2xl font-bold">{p.priceDisplay}</p>
-                <p className="text-white/60 text-xs font-mono">{fmt(priceSqm)}/sqm</p>
+              <div className="sm:text-right flex sm:flex-col items-baseline sm:items-end gap-2 sm:gap-0 flex-shrink-0">
+                <p className="text-white font-mono text-lg sm:text-2xl font-bold">{p.priceDisplay}</p>
+                <p className="text-white/60 text-[10px] sm:text-xs font-mono">{fmt(priceSqm)}/sqm</p>
                 {!p.priceVerified && (
-                  <p className="text-amber-400 text-xs mt-1 bg-amber-400/20 px-2 py-0.5 rounded inline-block">
-                    Price unverified — comp-based estimate
+                  <p className="text-amber-400 text-[10px] sm:text-xs mt-0.5 bg-amber-400/20 px-1.5 py-0.5 rounded">
+                    Unverified — comp estimate
                   </p>
                 )}
               </div>
@@ -251,13 +253,15 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
 
       {/* Tabs */}
       <Tabs defaultValue="costs" className="space-y-6">
-        <TabsList className="bg-card border border-border/50">
-          <TabsTrigger value="costs">Costs</TabsTrigger>
-          <TabsTrigger value="rental">Rental</TabsTrigger>
-          <TabsTrigger value="comps">Comparables</TabsTrigger>
-          <TabsTrigger value="investment">Investment</TabsTrigger>
-          <TabsTrigger value="negotiation">Negotiation</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <TabsList className="bg-card border border-border/50 w-max sm:w-auto">
+            <TabsTrigger value="costs">Costs</TabsTrigger>
+            <TabsTrigger value="rental">Rental</TabsTrigger>
+            <TabsTrigger value="comps">Comps</TabsTrigger>
+            <TabsTrigger value="investment">Investment</TabsTrigger>
+            <TabsTrigger value="negotiation">Negotiate</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Costs */}
         <TabsContent value="costs">
@@ -345,7 +349,8 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
         <TabsContent value="comps">
           <Card className="border-border/50">
             <CardHeader><CardTitle className="text-base">Comparable Sales</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto -mx-6 px-6">
+              <div className="min-w-[640px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -386,6 +391,7 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -537,38 +543,40 @@ export default function Page() {
                   <Button variant="ghost" size="sm" onClick={() => setView("compare")}>Full comparison &rarr;</Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-x-auto -mx-6 px-6">
+                <div className="min-w-[640px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Property</TableHead>
+                      <TableHead className="sticky left-0 bg-card z-10">Property</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="text-right">Score</TableHead>
                       <TableHead className="text-right">Yield</TableHead>
                       <TableHead className="text-right">Cashflow</TableHead>
-                      <TableHead className="text-right">Cash Required</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">Cash Req.</TableHead>
                       <TableHead className="text-center">Rec</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {properties.map(p => (
                       <TableRow key={p.slug} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSlug(p.slug); setView("detail"); }}>
-                        <TableCell>
+                        <TableCell className="sticky left-0 bg-card z-10">
                           <div>
                             <p className="font-medium text-sm">{p.address.split("/")[0].trim()}/{p.address.split("/")[1]?.split(",")[0]?.trim()}</p>
                             <p className="text-xs text-muted-foreground">{p.building} &middot; {p.beds}b{p.baths}b{p.cars}c</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right font-mono">{p.priceDisplay}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{p.priceDisplay}</TableCell>
                         <TableCell className="text-right"><span className={`font-mono font-semibold ${scoreColor(p.score)}`}>{p.score}</span></TableCell>
-                        <TableCell className="text-right font-mono">{p.grossYield}%</TableCell>
-                        <TableCell className={`text-right font-mono ${p.annualCashflow >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(p.annualCashflow)}</TableCell>
-                        <TableCell className="text-right font-mono">{fmt(p.totalCashRequired)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{p.grossYield}%</TableCell>
+                        <TableCell className={`text-right font-mono text-sm ${p.annualCashflow >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmt(p.annualCashflow)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm hidden sm:table-cell">{fmt(p.totalCashRequired)}</TableCell>
                         <TableCell className="text-center"><Badge variant={recVariant(p.recommendation)} className="text-xs">{p.recommendation}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </div>
