@@ -65,8 +65,17 @@ function PropertyCard({ p, onClick }: { p: Property; onClick: () => void }) {
   return (
     <Card className={`border cursor-pointer hover:border-foreground/20 transition-colors ${scoreBg(p.score)}`} onClick={onClick}>
       <div className="relative aspect-[16/9] overflow-hidden rounded-t-lg">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={p.heroImage} alt={p.address} className="w-full h-full object-cover" />
+        {p.heroImage ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={p.heroImage} alt={p.address} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-muted/80 to-muted/30 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-2xl font-mono font-bold text-muted-foreground/40">{p.beds}B{p.baths}B{p.cars}C</p>
+              <p className="text-xs text-muted-foreground/30 mt-1">{p.internalSqm}sqm &middot; L{p.floor}</p>
+            </div>
+          </div>
+        )}
         <div className="absolute top-3 right-3">
           <Badge variant={recVariant(p.recommendation)} className="text-xs">{p.recommendation}</Badge>
         </div>
@@ -192,8 +201,17 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
       {/* Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 relative rounded-xl overflow-hidden aspect-[16/9] bg-muted">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.heroImage} alt={p.address} className="w-full h-full object-cover" />
+          {p.heroImage ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={p.heroImage} alt={p.address} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-muted/80 to-muted/20 flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-4xl font-mono font-bold text-muted-foreground/20">{p.beds}B{p.baths}B{p.cars}C</p>
+                <p className="text-sm text-muted-foreground/15 mt-2">{p.building || p.address}</p>
+              </div>
+            </div>
+          )}
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
               <div className="min-w-0">

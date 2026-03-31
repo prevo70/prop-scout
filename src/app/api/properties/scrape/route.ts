@@ -54,6 +54,69 @@ function calculateStampDuty(price: number): number {
   return Math.round(47_295 + (3_721_000 - 1_168_000) * 5.50 / 100 + (price - 3_721_000) * 7.00 / 100);
 }
 
+function calculateInvestmentMetrics(
+  price: number, rentWeekly: number, loanAmount: number,
+  strataAnnual: number, councilAnnual: number, waterAnnual: number
+) {
+  if (!price || price <= 0) {
+    return {
+      score: 0, recommendation: "UNSCORED", riskRating: "UNKNOWN",
+      grossYield: 0, netYield: 0, capRate: 0, cashOnCash: 0,
+      annualCashflow: 0, annualHolding: 0, annualInterest: 0,
+    };
+  }
+
+  const rentAnnual = rentWeekly * 52;
+  const vacancy = 0.035;
+  const netRent = Math.round(rentAnnual * (1 - vacancy));
+  const pmCost = Math.round(rentAnnual * 0.085);
+  const insurance = 1800;
+  const annualHolding = strataAnnual + councilAnnual + waterAnnual + insurance + pmCost;
+  const annualInterest = Math.round(loanAmount * 0.061);
+  const annualCashflow = netRent - annualInterest - annualHolding;
+
+  const grossYield = rentWeekly > 0 ? Math.round((rentAnnual / price) * 10000) / 100 : 0;
+  const noi = netRent - annualHolding;
+  const netYield = Math.round((noi / price) * 10000) / 100;
+  const capRate = netYield;
+  const deposit = Math.round(price * 0.2);
+  const totalCash = deposit + calculateStampDuty(price) + 7908;
+  const cashOnCash = totalCash > 0 ? Math.round((annualCashflow / totalCash) * 10000) / 100 : 0;
+
+  // Basic score: yield-weighted (no comps data available)
+  let score = 0;
+  // Yield component (40%): 5%+ yield = 80+, 4% = 60, 3% = 40, <2% = 20
+  score += Math.min(40, Math.max(0, grossYield * 10));
+  // Cashflow component (30%): positive = 30, break-even = 15, negative = proportional
+  score += annualCashflow >= 0 ? 30 : Math.max(0, 30 + Math.round(annualCashflow / 1000));
+  // Price reasonableness (30%): below median = 30, at median = 20, above = proportional
+  const medianRatio = price / 770_000;
+  score += medianRatio <= 1 ? 30 : Math.max(0, Math.round(30 - (medianRatio - 1) * 20));
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let recommendation = "UNSCORED";
+  let riskRating = "UNKNOWN";
+  if (score >= 80) { recommendation = "STRONG BUY"; riskRating = "LOW"; }
+  else if (score >= 60) { recommendation = "BUY"; riskRating = "LOW"; }
+  else if (score >= 40) { recommendation = "HOLD"; riskRating = "MEDIUM"; }
+  else if (score >= 20) { recommendation = "PASS"; riskRating = "HIGH"; }
+  else { recommendation = "AVOID"; riskRating = "VERY HIGH"; }
+
+  // If no rent data, mark as needing input
+  if (rentWeekly <= 0) {
+    recommendation = "NEEDS DATA";
+    riskRating = "UNKNOWN";
+    score = 0;
+  }
+
+  return {
+    score, recommendation, riskRating,
+    grossYield, netYield, capRate, cashOnCash,
+    annualCashflow, annualHolding, annualInterest,
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const { url } = await req.json();
@@ -212,32 +275,23 @@ export async function POST(req: Request) {
       ltrWeekly: rentWeekly,
       ltrAnnual: rentAnnual,
       ltrGrossYield: grossYield,
-      ltrNetYield: 0,
+      ltrNetYield: hasPrice && rentWeekly > 0 ? Math.round(((rentAnnual * 0.965 - strataAnnual - councilAnnual - waterAnnual - 1800 - rentAnnual * 0.085) / price) * 10000) / 100 : 0,
       strNightly: 0,
       strOccupancy: 0,
       strAnnualRevenue: 0,
       strGrossYield: 0,
       strNetYield: 0,
       recommendedStrategy: "Long-Term Rental",
-      score: 0,
-      recommendation: "UNSCORED",
-      riskRating: "UNKNOWN",
-      grossYield,
-      netYield: 0,
-      capRate: 0,
-      cashOnCash: 0,
-      annualCashflow: 0,
-      annualHolding: strataAnnual + councilAnnual + waterAnnual + 1800 + Math.round(rentAnnual * 0.085),
-      annualInterest: Math.round(loanAmount * 0.061),
+      ...calculateInvestmentMetrics(price || 0, rentWeekly, loanAmount, strataAnnual, councilAnnual, waterAnnual),
       interestRate: 6.1,
       fiveYearCagr: 4.0,
-      fiveYearEquity: 0,
+      fiveYearEquity: hasPrice ? Math.round(price * Math.pow(1.04, 5)) - loanAmount : 0,
       suburbMedian: 770_000,
       priceToMedian: hasPrice ? Math.round((price / 770_000) * 1000) / 1000 : 0,
-      targetLow: 0,
-      targetHigh: 0,
-      openingOffer: 0,
-      walkAway: 0,
+      targetLow: hasPrice ? Math.round(price * 0.9) : 0,
+      targetHigh: hasPrice ? Math.round(price * 0.95) : 0,
+      openingOffer: hasPrice ? Math.round(price * 0.85) : 0,
+      walkAway: hasPrice ? Math.round(price * 0.95) : 0,
       leveragePoints: [],
       comparables: [],
       aiSummary: `Property scraped from listing. ${extracted.description || ""}`.slice(0, 300),
