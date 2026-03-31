@@ -61,7 +61,7 @@ function recVariant(r: string): "default" | "secondary" | "destructive" | "outli
 
 // ─── Property Card (List View) ───────────────────────────────────────────────
 
-function PropertyCard({ p, onClick }: { p: Property; onClick: () => void }) {
+function PropertyCard({ p, onClick, onRemove }: { p: Property; onClick: () => void; onRemove?: () => void }) {
   return (
     <Card className={`border cursor-pointer hover:border-foreground/20 transition-colors ${scoreBg(p.score)}`} onClick={onClick}>
       <div className="relative aspect-[16/9] overflow-hidden rounded-t-lg">
@@ -76,8 +76,17 @@ function PropertyCard({ p, onClick }: { p: Property; onClick: () => void }) {
             </div>
           </div>
         )}
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
           <Badge variant={recVariant(p.recommendation)} className="text-xs">{p.recommendation}</Badge>
+          {onRemove && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemove(); }}
+              className="w-6 h-6 rounded-full bg-black/60 hover:bg-red-500/80 flex items-center justify-center transition-colors"
+              title="Remove property"
+            >
+              <span className="text-white text-xs leading-none">&times;</span>
+            </button>
+          )}
         </div>
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-4">
           <p className="text-white font-mono text-xl font-bold">
@@ -478,6 +487,14 @@ export default function Page() {
     });
   }
 
+  function handleRemoveProperty(slug: string) {
+    setAllProperties(prev => prev.filter(p => p.slug !== slug));
+    if (selectedSlug === slug) {
+      setSelectedSlug(null);
+      setView("list");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -513,7 +530,7 @@ export default function Page() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {allProperties.map(p => (
-                <PropertyCard key={p.slug} p={p} onClick={() => { setSelectedSlug(p.slug); setView("detail"); }} />
+                <PropertyCard key={p.slug} p={p} onClick={() => { setSelectedSlug(p.slug); setView("detail"); }} onRemove={() => handleRemoveProperty(p.slug)} />
               ))}
             </div>
 
