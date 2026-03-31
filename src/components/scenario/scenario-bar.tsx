@@ -82,19 +82,19 @@ export function ScenarioBar({
           </Label>
         </div>
 
-        {/* Center: Cash Purchase toggle */}
-        {isAdjusted && (
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={adjustments.isCashPurchase}
-              onCheckedChange={(checked: boolean) =>
-                updateField("isCashPurchase", checked)
-              }
-              size="sm"
-            />
-            <Label className="text-xs">Cash Purchase</Label>
-          </div>
-        )}
+        {/* Center: Cash Purchase toggle — always visible */}
+        <div className="flex items-center gap-2 border-l border-border/50 pl-4">
+          <Switch
+            checked={adjustments.isCashPurchase}
+            onCheckedChange={(checked: boolean) =>
+              updateField("isCashPurchase", checked)
+            }
+            size="sm"
+          />
+          <Label className={`text-xs ${adjustments.isCashPurchase ? "text-amber-400 font-semibold" : "text-muted-foreground"}`}>
+            Cash Purchase
+          </Label>
+        </div>
 
         {/* Spacer */}
         <div className="flex-1" />
