@@ -1,6 +1,5 @@
 import type { Property } from "./data";
 import type { ScenarioAdjustments } from "./scenarios";
-import { calculateNswTransferDuty } from "./calculators/stamp-duty";
 import {
   DEFAULT_ACQUISITION_COSTS as DAC,
   DEFAULT_HOLDING as DH,
@@ -32,9 +31,6 @@ export interface DerivedValues {
   loanAmount: number;
   totalCashRequired: number;
   // Holding
-  strataAnnual: number;
-  councilAnnual: number;
-  waterAnnual: number;
   insurance: number;
   pmPercent: number;
   annualHolding: number;
@@ -94,7 +90,7 @@ export function recalculate(
 
   // Recalculate stamp duty if purchase price changed
   const stampDuty = adj.purchasePrice != null
-    ? calculateNswTransferDuty(purchasePrice)
+    ? calculateNswStampDuty(purchasePrice)
     : base.stampDuty;
 
   // Resolve acquisition line items
@@ -176,12 +172,26 @@ export function recalculate(
     strataReport, titleSearch, mortgageRegistration, transferRegistration,
     loanApplicationFee, depreciationSchedule,
     stampDuty, totalAcquisition, deposit, loanAmount, totalCashRequired,
-    strataAnnual, councilAnnual, waterAnnual, insurance, pmPercent, annualHolding,
+    insurance, pmPercent, annualHolding,
     ltrWeekly, ltrAnnual, ltrNetRental, ltrGrossYield, ltrNetYield,
     strNightly, strOccupancy, strAnnualRevenue, strGrossYield,
     interestRate, annualInterest, annualCashflow,
     grossYield, netYield, capRate, cashOnCash, depositPercent,
   };
+}
+
+// ─── NSW Stamp Duty Calculator ───────────────────────────────────────────────
+
+function calculateNswStampDuty(price: number): number {
+  // NSW 2025-26 investor rates (non-first-home-buyer)
+  if (price <= 17_000) return Math.round(price * 1.25 / 100);
+  if (price <= 35_000) return Math.round(213 + (price - 17_000) * 1.50 / 100);
+  if (price <= 93_000) return Math.round(483 + (price - 35_000) * 1.75 / 100);
+  if (price <= 351_000) return Math.round(1_498 + (price - 93_000) * 3.50 / 100);
+  if (price <= 1_168_000) return Math.round(10_530 + (price - 351_000) * 4.50 / 100);
+  if (price <= 3_721_000) return Math.round(47_295 + (price - 1_168_000) * 5.50 / 100);
+  // Premium property
+  return Math.round(47_295 + (3_721_000 - 1_168_000) * 5.50 / 100 + (price - 3_721_000) * 7.00 / 100);
 }
 
 // ─── 5-Year Projection ──────────────────────────────────────────────────────
@@ -195,7 +205,7 @@ export function projectFiveYears(
   const rentGrowth = (adj.rentGrowth ?? DG.rentGrowth) / 100;
   const strataGrowth = (adj.strataIncrease ?? DG.strataIncrease) / 100;
   const councilGrowth = (adj.councilIncrease ?? DG.councilIncrease) / 100;
-  const waterGrowth = DG.waterIncrease / 100;
+  const waterGrowth = (adj.capitalGrowth !== undefined ? DG.capitalGrowth : 2.5) / 100; // water ~= council
 
   const years: YearProjection[] = [];
   let cumCashflow = 0;

@@ -30,7 +30,43 @@ function formatDollar(value: number) {
 
 export function CashflowWaterfall(props: CashflowWaterfallProps) {
   // Waterfall: stacked bar with invisible base + visible segment
+  const rentalStart = 0;
+  const interestStart = props.netRental;
+  const holdingStart = interestStart - Math.abs(props.annualInterest);
   const cashflowValue = props.annualCashflow;
+
+  const data = [
+    {
+      name: "Rental Income",
+      base: 0,
+      value: props.netRental,
+      actual: props.netRental,
+      fill: EMERALD,
+    },
+    {
+      name: "Interest",
+      base: holdingStart < interestStart - Math.abs(props.annualInterest)
+        ? holdingStart
+        : interestStart - Math.abs(props.annualInterest),
+      value: Math.abs(props.annualInterest),
+      actual: -Math.abs(props.annualInterest),
+      fill: RED,
+    },
+    {
+      name: "Holding Costs",
+      base: Math.min(0, holdingStart - Math.abs(props.annualHolding)),
+      value: Math.abs(props.annualHolding),
+      actual: -Math.abs(props.annualHolding),
+      fill: RED,
+    },
+    {
+      name: "Net Cashflow",
+      base: cashflowValue < 0 ? cashflowValue : 0,
+      value: Math.abs(cashflowValue),
+      actual: cashflowValue,
+      fill: cashflowValue >= 0 ? AMBER : RED,
+    },
+  ];
 
   // Recalculate waterfall positions properly
   let runningTotal = 0;

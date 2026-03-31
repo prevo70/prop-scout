@@ -48,14 +48,12 @@ export function ScenarioBar({
 }: ScenarioBarProps) {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [scenarioName, setScenarioName] = useState("");
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string>("");
   const isAdjusted = mode === "adjusted";
 
   function handleSave() {
     const name = scenarioName.trim();
     if (!name) return;
-    const id = saveCurrentScenario(name);
-    setSelectedScenarioId(id);
+    saveCurrentScenario(name);
     setScenarioName("");
     setSaveDialogOpen(false);
   }
@@ -106,11 +104,9 @@ export function ScenarioBar({
           <div className="flex items-center gap-2">
             {/* Load scenario */}
             <Select
-              value={selectedScenarioId || undefined}
+              value={undefined}
               onValueChange={(val) => {
-                if (!val || val === "__empty") return;
-                setSelectedScenarioId(val);
-                loadScenario(val);
+                if (val) loadScenario(val);
               }}
             >
               <SelectTrigger size="sm" className="w-[160px]">
@@ -138,11 +134,9 @@ export function ScenarioBar({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                disabled={!selectedScenarioId}
                 onClick={() => {
-                  if (!selectedScenarioId) return;
-                  deleteScenario(selectedScenarioId);
-                  setSelectedScenarioId("");
+                  const last = savedScenarios[savedScenarios.length - 1];
+                  if (last) deleteScenario(last.id);
                 }}
               >
                 <Trash2 className="size-3.5 text-muted-foreground" />
