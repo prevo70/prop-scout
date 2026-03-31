@@ -21,6 +21,7 @@ import { NegotiationTab } from "@/components/detail/negotiation-tab";
 import { TaxTab } from "@/components/detail/tax-tab";
 import { ProjectionTab } from "@/components/detail/projection-tab";
 import { CalculatorTab } from "@/components/detail/calculator-tab";
+import { BreakevenTab } from "@/components/detail/breakeven-tab";
 
 // Scenario components
 import { ScenarioBar } from "@/components/scenario/scenario-bar";
@@ -294,6 +295,7 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
             <TabsTrigger value="comps">Comps</TabsTrigger>
             <TabsTrigger value="investment">Investment</TabsTrigger>
             <TabsTrigger value="projection">5yr Projection</TabsTrigger>
+            <TabsTrigger value="breakeven">Break-Even</TabsTrigger>
             <TabsTrigger value="calculator">Calculator</TabsTrigger>
             <TabsTrigger value="tax">Tax Impact</TabsTrigger>
             <TabsTrigger value="negotiation">Negotiate</TabsTrigger>
@@ -404,6 +406,10 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="breakeven">
+          <BreakevenTab property={p} adjustments={adjustments} derived={derived} />
         </TabsContent>
 
         <TabsContent value="calculator">

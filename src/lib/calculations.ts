@@ -240,6 +240,121 @@ export function projectFiveYears(
   return years;
 }
 
+// ─── Break-Even / Payback Projection ─────────────────────────────────────────
+
+export interface BreakevenYear {
+  year: number;
+  propertyValue: number;
+  loanBalance: number;        // remaining principal (P&I amortisation or full loan if IO)
+  equity: number;             // property value - loan balance
+  annualRent: number;
+  annualExpenses: number;     // holding + interest
+  netCashflow: number;
+  cumulativeCashInvested: number;  // deposit + acquisition + cumulative negative cashflow
+  cumulativeNetPosition: number;   // equity - cumulative cash invested (when this > 0 = break-even)
+  cumulativeRentProfit: number;    // cumulative net cashflow from rent
+  capitalGain: number;             // property value - purchase price
+  totalReturn: number;             // capital gain + cumulative rent profit
+  roiPercent: number;              // total return / total cash invested × 100
+}
+
+export interface BreakevenInputs {
+  years: number;               // 5, 10, 15, 20, 25
+  expenseInflation: number;    // blanket % increase per year on all expenses
+  capitalGrowthRate: number;   // % per year
+  rentGrowthRate: number;      // % per year
+  isInterestOnly: boolean;     // IO vs P&I
+}
+
+export function projectBreakeven(
+  base: Property,
+  adj: ScenarioAdjustments,
+  inputs: BreakevenInputs
+): BreakevenYear[] {
+  const derived = recalculate(base, adj);
+  const price = derived.purchasePrice;
+  const isCash = adj.isCashPurchase;
+
+  const capGrowth = inputs.capitalGrowthRate / 100;
+  const rentGrowth = inputs.rentGrowthRate / 100;
+  const expInflation = inputs.expenseInflation / 100;
+
+  // Initial cash outlay
+  const initialCash = derived.totalCashRequired;
+
+  // Loan amortisation (P&I)
+  const monthlyRate = isCash ? 0 : derived.interestRate / 100 / 12;
+  const totalMonths = 30 * 12; // 30-year term
+  const monthlyPI = (!isCash && monthlyRate > 0)
+    ? derived.loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) / (Math.pow(1 + monthlyRate, totalMonths) - 1)
+    : 0;
+
+  const results: BreakevenYear[] = [];
+  let cumCashInvested = initialCash;
+  let cumRentProfit = 0;
+  let loanBalance = derived.loanAmount;
+
+  for (let y = 1; y <= inputs.years; y++) {
+    // Property value
+    const propertyValue = Math.round(price * Math.pow(1 + capGrowth, y));
+
+    // Rent grows
+    const annualRent = Math.round(derived.ltrWeekly * 52 * Math.pow(1 + rentGrowth, y));
+    const netRent = Math.round(annualRent * (1 - VACANCY_RATE / 100));
+
+    // Expenses grow with inflation
+    const holdingCosts = Math.round(derived.annualHolding * Math.pow(1 + expInflation, y));
+
+    // Loan
+    let interestCost = 0;
+    let principalPaid = 0;
+    if (!isCash && loanBalance > 0) {
+      if (inputs.isInterestOnly) {
+        interestCost = Math.round(loanBalance * derived.interestRate / 100);
+      } else {
+        // P&I: calculate interest on remaining balance, principal is the rest
+        const annualPayment = monthlyPI * 12;
+        interestCost = Math.round(loanBalance * derived.interestRate / 100);
+        principalPaid = Math.min(Math.round(annualPayment - interestCost), loanBalance);
+        loanBalance = Math.max(0, loanBalance - principalPaid);
+      }
+    }
+
+    const annualExpenses = holdingCosts + interestCost;
+    const netCashflow = netRent - annualExpenses;
+    cumRentProfit += netCashflow;
+
+    // If negative cashflow, that's additional cash invested
+    if (netCashflow < 0) {
+      cumCashInvested += Math.abs(netCashflow);
+    }
+
+    const equity = propertyValue - loanBalance;
+    const capitalGain = propertyValue - price;
+    const totalReturn = capitalGain + cumRentProfit;
+    const cumulativeNetPosition = equity - cumCashInvested;
+    const roiPercent = cumCashInvested > 0 ? round2((totalReturn / cumCashInvested) * 100) : 0;
+
+    results.push({
+      year: y,
+      propertyValue,
+      loanBalance: Math.round(loanBalance),
+      equity: Math.round(equity),
+      annualRent,
+      annualExpenses,
+      netCashflow,
+      cumulativeCashInvested: Math.round(cumCashInvested),
+      cumulativeNetPosition: Math.round(cumulativeNetPosition),
+      cumulativeRentProfit: Math.round(cumRentProfit),
+      capitalGain: Math.round(capitalGain),
+      totalReturn: Math.round(totalReturn),
+      roiPercent,
+    });
+  }
+
+  return results;
+}
+
 // ─── Mortgage Calculator ─────────────────────────────────────────────────────
 
 export function calculateMortgage(
