@@ -76,8 +76,8 @@ export function AcquisitionDonut(props: AcquisitionDonutProps) {
   return (
     <div className="space-y-4">
       {/* Horizontal bar chart */}
-      <ChartContainer config={chartConfig} className="h-[280px] w-full">
-        <BarChart data={data} layout="vertical" barSize={18} margin={{ left: 10, right: 10 }}>
+      <ChartContainer config={chartConfig} className="h-[320px] w-full">
+        <BarChart data={data} layout="vertical" barSize={16} margin={{ left: 120, right: 16, top: 4, bottom: 4 }}>
           <XAxis
             type="number"
             tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
@@ -86,8 +86,10 @@ export function AcquisitionDonut(props: AcquisitionDonutProps) {
           <YAxis
             dataKey="name"
             type="category"
-            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-            width={120}
+            tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }}
+            width={115}
+            tickLine={false}
+            axisLine={false}
           />
           <ChartTooltip
             content={
