@@ -62,15 +62,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    // Validate URL domain
-    const parsed = new URL(url);
-    const allowedDomains = ["domain.com.au", "realestate.com.au", "ayre.com.au"];
-    const isDomainAllowed = allowedDomains.some(d => parsed.hostname.endsWith(d));
-    if (!isDomainAllowed) {
-      return NextResponse.json(
-        { error: `URL must be from: ${allowedDomains.join(", ")}` },
-        { status: 400 }
-      );
+    // Validate URL is a real URL
+    try {
+      new URL(url);
+    } catch {
+      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     }
 
     if (!FIRECRAWL_API_KEY) {

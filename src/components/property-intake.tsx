@@ -77,7 +77,7 @@ export function PropertyIntake({ onAdd }: PropertyIntakeProps) {
           <div className="space-y-3">
             <div className="flex gap-2">
               <Input
-                placeholder="Paste listing URL (domain.com.au, realestate.com.au, ayre.com.au)"
+                placeholder="Paste any property listing URL"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleScrape()}
