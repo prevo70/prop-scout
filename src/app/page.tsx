@@ -37,6 +37,7 @@ import { MarketPosition } from "@/components/charts/market-position";
 
 // Shared helpers
 import { fmt, scoreColor, ScoreGauge } from "@/components/detail/shared";
+import { PropertyIntake } from "@/components/property-intake";
 
 // Hooks
 import { useScenario } from "@/hooks/use-scenario";
@@ -111,7 +112,7 @@ function PropertyCard({ p, onClick }: { p: Property; onClick: () => void }) {
 
 // ─── Comparison View ─────────────────────────────────────────────────────────
 
-function ComparisonView() {
+function ComparisonView({ propertyList }: { propertyList: Property[] }) {
   const metrics: { label: string; fn: (p: Property) => string; highlight?: (p: Property) => boolean }[] = [
     { label: "Price", fn: p => `${p.priceDisplay}${!p.priceVerified ? " *" : ""}` },
     { label: "Beds / Bath / Car", fn: p => `${p.beds} / ${p.baths} / ${p.cars}` },
@@ -145,7 +146,7 @@ function ComparisonView() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-40 sticky left-0 bg-card z-10">Metric</TableHead>
-                {properties.map(p => (
+                {propertyList.map(p => (
                   <TableHead key={p.slug} className="text-center min-w-[160px]">
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">{p.building}</p>
@@ -159,7 +160,7 @@ function ComparisonView() {
               {metrics.map(m => (
                 <TableRow key={m.label}>
                   <TableCell className="text-sm text-muted-foreground font-medium sticky left-0 bg-card z-10">{m.label}</TableCell>
-                  {properties.map(p => (
+                  {propertyList.map(p => (
                     <TableCell key={p.slug} className={`text-center font-mono text-sm ${m.highlight?.(p) ? "text-emerald-400 font-semibold" : ""}`}>
                       {m.fn(p)}
                     </TableCell>
@@ -448,8 +449,16 @@ function DetailView({ p, onBack }: { p: Property; onBack: () => void }) {
 export default function Page() {
   const [view, setView] = useState<"list" | "detail" | "compare">("list");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [allProperties, setAllProperties] = useState<Property[]>(properties);
 
-  const selectedProperty = properties.find(p => p.slug === selectedSlug);
+  const selectedProperty = allProperties.find(p => p.slug === selectedSlug);
+
+  function handleAddProperty(newProp: Property) {
+    setAllProperties(prev => {
+      if (prev.some(p => p.slug === newProp.slug)) return prev;
+      return [...prev, newProp];
+    });
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -469,7 +478,7 @@ export default function Page() {
             <Button variant={view === "compare" ? "secondary" : "ghost"} size="sm" onClick={() => { setView("compare"); setSelectedSlug(null); }}>
               Compare
             </Button>
-            <Badge variant="outline" className="font-mono text-xs hidden sm:inline-flex">{properties.length} properties</Badge>
+            <Badge variant="outline" className="font-mono text-xs hidden sm:inline-flex">{allProperties.length} properties</Badge>
           </div>
         </div>
       </header>
@@ -479,10 +488,13 @@ export default function Page() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Investment Properties</h2>
-              <p className="text-xs text-muted-foreground">Sydney CBD &middot; {properties.length} assessed</p>
+              <p className="text-xs text-muted-foreground">Sydney CBD &middot; {allProperties.length} assessed</p>
             </div>
+
+            <PropertyIntake onAdd={handleAddProperty} />
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {properties.map(p => (
+              {allProperties.map(p => (
                 <PropertyCard key={p.slug} p={p} onClick={() => { setSelectedSlug(p.slug); setView("detail"); }} />
               ))}
             </div>
@@ -509,7 +521,7 @@ export default function Page() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {properties.map(p => (
+                      {allProperties.map(p => (
                         <TableRow key={p.slug} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedSlug(p.slug); setView("detail"); }}>
                           <TableCell className="sticky left-0 bg-card z-10">
                             <div>
@@ -543,7 +555,7 @@ export default function Page() {
               <h2 className="text-lg font-semibold">Property Comparison</h2>
               <Button variant="ghost" size="sm" onClick={() => setView("list")}>&larr; Back to list</Button>
             </div>
-            <ComparisonView />
+            <ComparisonView propertyList={allProperties} />
           </div>
         )}
 
