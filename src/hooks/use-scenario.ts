@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { Property } from "@/lib/data";
 import {
   type ScenarioAdjustments,
   type SavedScenario,
   DEFAULT_ADJUSTMENTS,
-  getScenarios,
   saveScenario as persistScenario,
   deleteScenario as removeScenario,
+  getScenarios,
 } from "@/lib/scenarios";
 import { recalculate, type DerivedValues } from "@/lib/calculations";
 
@@ -17,12 +17,9 @@ export type ScenarioMode = "model" | "adjusted";
 export function useScenario(property: Property) {
   const [mode, setMode] = useState<ScenarioMode>("model");
   const [adjustments, setAdjustments] = useState<ScenarioAdjustments>({ ...DEFAULT_ADJUSTMENTS });
-  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
-
-  // Load saved scenarios on mount
-  useEffect(() => {
-    setSavedScenarios(getScenarios(property.slug));
-  }, [property.slug]);
+  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>(
+    () => getScenarios(property.slug)
+  );
 
   // Derived values (memoized)
   const derived: DerivedValues = useMemo(
@@ -87,7 +84,7 @@ export function useScenario(property: Property) {
         updatedAt: now,
       };
       persistScenario(scenario);
-      setSavedScenarios(getScenarios(property.slug));
+      setSavedScenarios((prev) => [...prev, scenario]);
       return scenario.id;
     },
     [property.slug, adjustments]
@@ -107,7 +104,7 @@ export function useScenario(property: Property) {
   const deleteScenarioById = useCallback(
     (id: string) => {
       removeScenario(property.slug, id);
-      setSavedScenarios(getScenarios(property.slug));
+      setSavedScenarios((prev) => prev.filter((scenario) => scenario.id !== id));
     },
     [property.slug]
   );

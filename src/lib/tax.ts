@@ -35,13 +35,6 @@ function calculateMedicareLevy(taxableIncome: number): number {
 
 // ─── HELP/HECS Repayments (2025-26 marginal system) ─────────────────────────
 
-const HELP_BRACKETS = [
-  { min: 0, max: 67_000, rate: 0 },
-  { min: 67_001, max: 125_000, marginalRate: 0.15 },
-  { min: 125_001, max: 179_285, marginalRate: 0.17, base: 8_700 },
-  // Above $179,286: 10% of total repayment income
-] as const;
-
 function calculateHELP(repaymentIncome: number): number {
   if (repaymentIncome <= 67_000) return 0;
   if (repaymentIncome <= 125_000) return Math.round((repaymentIncome - 67_000) * 0.15);
@@ -80,7 +73,6 @@ export interface TaxProfileInputs {
   grossSalary: number;
   otherIncome: number;           // dividends, interest, etc.
   deductions: number;            // work-related deductions
-  hasPrivateHealth: boolean;
   hasHELP: boolean;
   // Property investment (filled from scenario)
   rentalIncome: number;          // annual rental income
@@ -125,7 +117,7 @@ export interface TaxResult {
 // ─── Calculate Full Tax Scenario ─────────────────────────────────────────────
 
 export function calculateFullTax(inputs: TaxProfileInputs): TaxResult {
-  const { grossSalary, otherIncome, deductions, hasPrivateHealth, hasHELP } = inputs;
+  const { grossSalary, otherIncome, deductions, hasHELP } = inputs;
 
   // Pre-property taxable income
   const grossIncome = grossSalary + otherIncome;
@@ -181,11 +173,8 @@ export function calculateFullTax(inputs: TaxProfileInputs): TaxResult {
   const brackets = TAX_BRACKETS.map((b, i) => {
     const bracketMin = b.min;
     const bracketMax = i < TAX_BRACKETS.length - 1 ? b.max : taxableIncomeAfterProperty;
-    const effectiveMax = Math.min(bracketMax, taxableIncomeAfterProperty);
-    const effectiveMin = Math.max(bracketMin, 0);
-    const taxableInBracket = Math.max(0, effectiveMax - effectiveMin + (i > 0 ? 0 : 0));
     const taxInBracket = taxableIncomeAfterProperty >= bracketMin
-      ? Math.round(Math.min(taxableIncomeAfterProperty, b.max) - bracketMin + (i > 0 ? 1 : 0)) * b.rate
+      ? Math.round(Math.min(taxableIncomeAfterProperty, bracketMax) - bracketMin + (i > 0 ? 1 : 0)) * b.rate
       : 0;
 
     return {

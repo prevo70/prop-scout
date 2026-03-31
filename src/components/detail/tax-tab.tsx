@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { Property } from "@/lib/data";
 import type { DerivedValues } from "@/lib/calculations";
-import { calculateFullTax, getMarginalRate, type TaxProfileInputs } from "@/lib/tax";
+import { calculateFullTax, type TaxProfileInputs } from "@/lib/tax";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +19,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from "recharts";
 import { fmt } from "./shared";
 
 interface TaxTabProps {
-  property: Property;
   derived: DerivedValues;
 }
 
@@ -34,12 +32,11 @@ const bracketChartConfig = {
   tax: { label: "Tax", color: "hsl(45 93% 47%)" },
 } satisfies ChartConfig;
 
-export function TaxTab({ property, derived }: TaxTabProps) {
+export function TaxTab({ derived }: TaxTabProps) {
   // Personal inputs
   const [grossSalary, setGrossSalary] = useState(120_000);
   const [otherIncome, setOtherIncome] = useState(0);
   const [deductions, setDeductions] = useState(3_000);
-  const [hasPrivateHealth, setHasPrivateHealth] = useState(true);
   const [hasHELP, setHasHELP] = useState(false);
   const [depreciationAmount, setDepreciationAmount] = useState(8_000);
 
@@ -51,12 +48,11 @@ export function TaxTab({ property, derived }: TaxTabProps) {
     grossSalary,
     otherIncome,
     deductions,
-    hasPrivateHealth,
     hasHELP,
     rentalIncome,
     rentalExpenses,
     depreciationAmount,
-  }), [grossSalary, otherIncome, deductions, hasPrivateHealth, hasHELP, rentalIncome, rentalExpenses, depreciationAmount]);
+  }), [grossSalary, otherIncome, deductions, hasHELP, rentalIncome, rentalExpenses, depreciationAmount]);
 
   const result = useMemo(() => calculateFullTax(inputs), [inputs]);
 
@@ -114,10 +110,6 @@ export function TaxTab({ property, derived }: TaxTabProps) {
               </div>
             </div>
             <Separator className="opacity-30" />
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">Private Health Insurance</Label>
-              <Switch checked={hasPrivateHealth} onCheckedChange={setHasPrivateHealth} />
-            </div>
             <div className="flex items-center justify-between">
               <Label className="text-xs text-muted-foreground">HECS/HELP Debt</Label>
               <Switch checked={hasHELP} onCheckedChange={setHasHELP} />

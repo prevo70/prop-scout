@@ -35,10 +35,12 @@ export function CostsTab({ p, derived }: CostsTabProps) {
   const insurance = derived?.insurance ?? DH.insurance;
   const pmPercent = derived?.pmPercent ?? DH.pmPercent;
   const pmCost = Math.round((derived?.ltrAnnual ?? p.ltrAnnual) * pmPercent / 100);
-  const strataAnnual = p.strataAnnual;
-  const councilAnnual = p.councilAnnual;
-  const waterAnnual = p.waterAnnual;
+  const strataAnnual = derived?.strataAnnual ?? p.strataAnnual;
+  const councilAnnual = derived?.councilAnnual ?? p.councilAnnual;
+  const waterAnnual = derived?.waterAnnual ?? p.waterAnnual;
   const holdingTotal = derived?.annualHolding ?? (strataAnnual + councilAnnual + waterAnnual + insurance + pmCost);
+  const depositPercent = derived?.depositPercent ?? 20;
+  const depositLabel = loanAmount === 0 ? "Cash Purchase" : `Deposit (${depositPercent}%)`;
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -77,7 +79,7 @@ export function CostsTab({ p, derived }: CostsTabProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <M label="Purchase Price" value={fmt(p.price)} />
-          <M label="Deposit (20%)" value={fmt(deposit)} />
+          <M label={depositLabel} value={fmt(deposit)} />
           <M label="Loan Amount" value={fmt(loanAmount)} />
           <Separator />
           <M label="Total Cash Required" value={fmt(totalCashRequired)} accent />
