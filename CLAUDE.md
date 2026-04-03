@@ -116,6 +116,18 @@ FIRECRAWL_API_KEY    # Firecrawl web scraping (set in Vercel)
 ANTHROPIC_API_KEY    # Claude Haiku for extraction (set in Vercel)
 ```
 
+## AI Orchestration — Manager/Worker Setup
+
+**Claude (Senior Architect)** — complex problem-solving, architectural decisions, cross-file debugging, error log diagnosis, state management bugs, multi-file refactoring. Token-limited (Max plan).
+
+**Gemma 4 E4B (Junior Developer)** — runs locally on M1 Max via Ollama/Continue VSCode. Unlimited tokens, zero cost. Handles: component scaffolding, CSS/SCSS, basic Liquid loops, single-file generation, code comments, framework translations.
+
+**Rules:**
+- If asked to do boilerplate/scaffolding/formatting, push back and suggest Gemma
+- Assume files created by Gemma may have logic errors (4B param model, limited reasoning)
+- Claude handles: multi-file refactoring, complex state, API debugging, architectural decisions
+- Gemma handles: repetitive iteration, styling, single components, translations
+
 ## Build & Deploy
 ```bash
 npm run build
