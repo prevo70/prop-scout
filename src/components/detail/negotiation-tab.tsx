@@ -3,6 +3,7 @@
 import type { Property } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { M, fmt } from "./shared";
+import { NegotiationEmail } from "./negotiation-email";
 
 interface NegotiationTabProps {
   p: Property;
@@ -47,6 +48,29 @@ export function NegotiationTab({ p }: NegotiationTabProps) {
           </ol>
         </CardContent>
       </Card>
+      {/* Email Draft */}
+      <div className="md:col-span-2">
+        <NegotiationEmail
+          address={p.address}
+          building={p.building}
+          priceDisplay={p.priceDisplay}
+          price={p.price}
+          beds={p.beds}
+          baths={p.baths}
+          cars={p.cars}
+          internalSqm={p.internalSqm}
+          agent={p.agent}
+          agency={p.agency}
+          daysOnMarket={p.daysOnMarket}
+          openingOffer={p.openingOffer}
+          targetLow={p.targetLow}
+          targetHigh={p.targetHigh}
+          leveragePoints={p.leveragePoints}
+          comparables={p.comparables}
+          grossYield={p.grossYield}
+          annualCashflow={p.annualCashflow}
+        />
+      </div>
     </div>
   );
 }
